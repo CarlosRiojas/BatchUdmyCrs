@@ -13,14 +13,18 @@ import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.xml.StaxEventItemReader;
+import org.springframework.batch.item.xml.StaxEventItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -60,13 +64,27 @@ public class BatchConfiguration {
         return new InMemReader();
     }
 
+    @StepScope
     @Bean
-    public FlatFileItemReader flatFileItemReader()
+    public StaxEventItemReader xmlItemReader(@Value("#{jobParameters['fileInput']}")
+                                                     FileSystemResource inputFile){
+        //where to read the xml
+        StaxEventItemWriter reader = new StaxEventItemWriter();
+        reader.setResource(inputFile);
+
+        //set.FragmentRootElementname I cant find it
+    }
+
+    @StepScope
+    @Bean
+    public FlatFileItemReader flatFileItemReader(
+            @Value("#{jobParameters['fileInput']}")
+            FileSystemResource inputFile)
 
     {
         FlatFileItemReader reader = new FlatFileItemReader();
         //Step 1 let reader know where is the file
-        reader.setResource(new FileSystemResource("input/product.csv"));
+        reader.setResource(inputFile);
         //Step 2 create the line mapper
         reader.setLineMapper(
                 new DefaultLineMapper<Product>() {
@@ -79,6 +97,7 @@ public class BatchConfiguration {
                                         "ProductDesc",
                                         "price",
                                         "unit"});//you need to give a property to each token
+                                setDelimiter("|");
                             }
                         });
                         setFieldSetMapper(new BeanWrapperFieldSetMapper<Product>() {
@@ -98,7 +117,7 @@ public class BatchConfiguration {
     @Bean
     public Step step2() {
         return steps.get("step2").<Integer, Integer>chunk(3)
-                .reader(flatFileItemReader())
+                .reader(flatFileItemReader( null))
                 .writer(new ConsoleItemWriter())
                 .build();
 
