@@ -28,6 +28,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
+import org.springframework.oxm.xstream.XStreamMarshaller;
 
 import javax.batch.api.chunk.ItemReader;
 
@@ -69,10 +71,37 @@ public class BatchConfiguration {
     public StaxEventItemReader xmlItemReader(@Value("#{jobParameters['fileInput']}")
                                                      FileSystemResource inputFile){
         //where to read the xml
-        StaxEventItemWriter reader = new StaxEventItemWriter();
+        StaxEventItemReader reader = new StaxEventItemReader();
         reader.setResource(inputFile);
 
-        //set.FragmentRootElementname I cant find it
+
+        //need to let reader to know which tags describe the domain object
+        reader.setFragmentRootElementName("product");
+
+        //tell reader how to parse XML and which domain object to be mapped
+        reader.setUnmarshaller(new Jaxb2Marshaller(){
+            {
+                setClassesToBeBound(Product.class);
+            }
+        });
+        return reader;
+    }
+
+    @Bean
+    @StepScope
+    public  StaxEventItemWriter xmlWriter( @Value("#{jobParameters['fileOutput']}")
+                                                   FileSystemResource outputFile){
+        XStreamMarshaller marshaller = new XStreamMarshaller();
+        StaxEventItemWriter staxEventItemWriter = new StaxEventItemWriter();
+
+        //setting up the resource
+        staxEventItemWriter.setResource(outputFile);
+        //Setting up the marshaller
+        staxEventItemWriter.setMarshaller(marshaller);
+        //Set the root tag
+        staxEventItemWriter.setRootTagName("Products");
+
+        return staxEventItemWriter;
     }
 
     @StepScope
@@ -100,6 +129,26 @@ public class BatchConfiguration {
                                 setDelimiter("|");
                             }
                         });
+                        /* ----------------------------FIXED LENGTH TOKENIZER EXAMPLE----------------------------------------
+----------------------------FILE "productfix.txt" is aimed at-------------------------------------------
+                                setLineTokenizer(new FixedLengthTokenizer() {
+                                    {
+                                        setNames(new String[]{
+                                                "productID",
+                                                "productName",
+                                                "ProductDesc",
+                                                "price",
+                                                "unit"});
+                                        setColumns(
+                                                new Range(1,16), //these are ranges between the columns
+                                                new Range(17,41),
+                                                new Range(42,65),
+                                                new Range(66,73),
+                                                new Range(74,80)
+                                        )
+                                    }
+                            }
+                        });*/ //FIXED DELIMITER
                         setFieldSetMapper(new BeanWrapperFieldSetMapper<Product>() {
                             {
                                 setTargetType(Product.class);
@@ -117,8 +166,9 @@ public class BatchConfiguration {
     @Bean
     public Step step2() {
         return steps.get("step2").<Integer, Integer>chunk(3)
-                .reader(flatFileItemReader( null))
-                .writer(new ConsoleItemWriter())
+                //.reader(flatFileItemReader( null))
+                .reader(reader())
+                .writer(xmlWriter(null))
                 .build();
 
     }

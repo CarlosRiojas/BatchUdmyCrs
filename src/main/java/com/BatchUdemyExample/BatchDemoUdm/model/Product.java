@@ -1,32 +1,34 @@
 package com.BatchUdemyExample.BatchDemoUdm.model;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.math.BigDecimal;
 
+@XmlRootElement(name="product")
 public class Product {
 
-    private Integer productID;
+    private Integer productId;
     private String productName;
-    private String ProductDesc;
+    private String productDesc;
     private BigDecimal price;
     private Integer unit;
 
     @Override
     public String toString() {
         return "Product{" +
-                "productID=" + productID +
+                "productID=" + productId +
                 ", productName='" + productName + '\'' +
-                ", ProductDesc='" + ProductDesc + '\'' +
+                ", productDesc='" + productDesc + '\'' +
                 ", price=" + price +
                 ", unit=" + unit +
                 '}';
     }
 
-    public Integer getProductID() {
-        return productID;
+    public Integer getProductId() {
+        return productId;
     }
 
-    public void setProductID(Integer productID) {
-        this.productID = productID;
+    public void setProductId(Integer productId) {
+        this.productId = productId;
     }
 
     public String getProductName() {
@@ -38,11 +40,11 @@ public class Product {
     }
 
     public String getProductDesc() {
-        return ProductDesc;
+        return productDesc;
     }
 
     public void setProductDesc(String productDesc) {
-        ProductDesc = productDesc;
+        this.productDesc = productDesc;
     }
 
     public BigDecimal getPrice() {
